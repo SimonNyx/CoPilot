@@ -16,6 +16,8 @@ export interface EventSource {
 	index_pattern: string
 	event_type: EventType
 	time_field: string
+	/** Name of the connector (in `connectors`) whose cluster hosts `index_pattern`. Defaults to "Wazuh-Indexer". */
+	connector_name: string
 	enabled: boolean
 	displayed_columns?: DisplayColumn[] | null
 	created_at: string

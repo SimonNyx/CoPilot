@@ -83,6 +83,7 @@ const {
 	indexId,
 	agentId,
 	alertId,
+	connectorName,
 	forceLicenseResponse = undefined,
 	size
 } = defineProps<{
@@ -90,6 +91,7 @@ const {
 	indexId: string
 	agentId: string
 	alertId: number
+	connectorName?: string
 	forceLicenseResponse?: boolean
 	size?: ButtonSize
 }>()
@@ -113,7 +115,7 @@ function analysis() {
 	loading.value = true
 
 	Api.threatIntel
-		.aiVelociraptorArtifactRecommendation({ indexName, indexId, agentId, alertId })
+		.aiVelociraptorArtifactRecommendation({ indexName, indexId, agentId, alertId, connectorName })
 		.then(res => {
 			if (res.data.success) {
 				analysisResponse.value = res.data

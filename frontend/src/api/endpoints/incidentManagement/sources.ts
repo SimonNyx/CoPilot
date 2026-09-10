@@ -9,22 +9,22 @@ export default {
 			{ signal }
 		)
 	},
-	getAvailableMappings(indexName: string, signal?: AbortSignal) {
+	getAvailableMappings(indexName: string, connectorName?: string, signal?: AbortSignal) {
 		return HttpClient.get<FlaskBaseResponse & { available_mappings: string[] }>(
 			`/incidents/db_operations/mappings/fields-assets-title-and-timefield`,
-			{ params: { index_name: indexName }, signal }
+			{ params: { index_name: indexName, connector_name: connectorName }, signal }
 		)
 	},
-	getSourceByIndex(indexName: string, signal?: AbortSignal) {
+	getSourceByIndex(indexName: string, connectorName?: string, signal?: AbortSignal) {
 		return HttpClient.get<FlaskBaseResponse & { source: SourceName }>(
 			`/incidents/db_operations/available-source/${indexName}`,
-			{ signal }
+			{ params: { connector_name: connectorName }, signal }
 		)
 	},
-	getAvailableIndices(source: SourceName, signal?: AbortSignal) {
+	getAvailableIndices(source: SourceName, connectorName?: string, signal?: AbortSignal) {
 		return HttpClient.get<FlaskBaseResponse & { indices: string[] }>(
 			`/incidents/db_operations/available-indices/${source}`,
-			{ signal }
+			{ params: { connector_name: connectorName }, signal }
 		)
 	},
 	createSourceConfiguration(payload: SourceConfiguration) {

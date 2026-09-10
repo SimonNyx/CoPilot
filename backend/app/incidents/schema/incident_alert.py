@@ -25,6 +25,11 @@ class CreateAlertRequest(BaseModel):
         description="The name of the index to search alerts for.",
     )
     alert_id: str = Field(..., description="The alert id.")
+    connector_name: Optional[str] = Field(
+        None,
+        description="Name of the connector (in `connectors`) whose OpenSearch/Elasticsearch cluster hosts "
+        "`index_name`. Defaults to the Wazuh indexer when omitted, so existing ingest callers are unaffected.",
+    )
 
 
 class CreateAlertRequestRoute(BaseModel):
@@ -40,6 +45,11 @@ class CreateAlertRequestRoute(BaseModel):
     alert_id: Optional[int] = Field(
         None,
         description="The alert id.",
+    )
+    connector_name: Optional[str] = Field(
+        None,
+        description="Name of the connector whose cluster hosts `index_name`. Defaults to the Wazuh indexer "
+        "when omitted.",
     )
 
 
@@ -217,6 +227,7 @@ class CreatedAlertPayload(BaseModel):
     source: str
     index_name: Optional[str] = None
     index_id: Optional[str] = None
+    connector_name: Optional[str] = None
     alert_id: Optional[int] = None
     # Wazuh rule level (1-15) surfaced by default plus a normalized severity label
     # so downstream Shuffle consumers don't need custom mapping logic. Issue #980.

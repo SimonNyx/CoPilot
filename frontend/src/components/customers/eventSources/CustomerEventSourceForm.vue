@@ -21,6 +21,15 @@
 				<n-input v-model:value="form.time_field" placeholder="e.g. timestamp" clearable />
 			</n-form-item>
 
+			<n-form-item label="Cluster">
+				<n-select
+					v-model:value="form.connector_name"
+					:options="connectorOptions"
+					:loading="loadingConnectorOptions"
+					placeholder="Wazuh-Indexer"
+				/>
+			</n-form-item>
+
 			<n-form-item label="Enabled">
 				<n-switch v-model:value="form.enabled" />
 			</n-form-item>
@@ -39,8 +48,9 @@
 import type { ApiError } from "@/types/common"
 import type { EventSource } from "@/types/event-sources"
 import { NButton, NFormItem, NInput, NSelect, NSwitch, useMessage } from "naive-ui"
-import { computed, reactive, ref } from "vue"
+import { computed, onBeforeMount, reactive, ref } from "vue"
 import Api from "@/api"
+import { useIndexerConnectorOptions } from "@/composables/useIndexerConnectorOptions"
 import { getApiErrorMessage } from "@/utils"
 
 const props = defineProps<{
@@ -65,12 +75,23 @@ const eventTypeOptions = [
 	{ label: "Network Security", value: "Network Security" }
 ]
 
+// Which OpenSearch/Elasticsearch cluster this source's index_pattern lives on. Restricted
+// to indexer-shaped connectors (name containing "Indexer" or "OpenSearch") rather than every
+// connector in the deployment -- picking e.g. "Shuffle" here would silently break the source.
+const { options: connectorOptions, loading: loadingConnectorOptions, load: loadConnectorOptions } =
+	useIndexerConnectorOptions()
+
 const form = reactive({
 	name: props.editingSource?.name || "",
 	index_pattern: props.editingSource?.index_pattern || "",
 	event_type: props.editingSource?.event_type || (null as string | null),
 	time_field: props.editingSource?.time_field || "timestamp",
+	connector_name: props.editingSource?.connector_name || "Wazuh-Indexer",
 	enabled: props.editingSource?.enabled ?? true
+})
+
+onBeforeMount(() => {
+	loadConnectorOptions()
 })
 
 const isValid = computed(() => {
@@ -89,6 +110,7 @@ function submit() {
 				index_pattern: form.index_pattern,
 				event_type: form.event_type || "",
 				time_field: form.time_field,
+				connector_name: form.connector_name,
 				enabled: form.enabled
 			})
 			.then(res => {
@@ -113,6 +135,7 @@ function submit() {
 				index_pattern: form.index_pattern,
 				event_type: form.event_type || "",
 				time_field: form.time_field,
+				connector_name: form.connector_name,
 				enabled: form.enabled
 			})
 			.then(res => {

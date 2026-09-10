@@ -22,15 +22,21 @@
 					</code>
 				</div>
 				<div v-else-if="key === 'index_name'">
-					<code class="text-primary cursor-pointer" @click.stop="routeIndex(asset.index_name).navigate()">
+					<code
+						v-if="isOnWazuhIndexer"
+						class="text-primary cursor-pointer"
+						@click.stop="routeIndex(asset.index_name).navigate()"
+					>
 						{{ asset.index_name }}
 						<Icon :name="LinkIcon" :size="14" class="relative top-0.5" />
 					</code>
+					<code v-else :title="`Lives on connector '${asset.connector_name}'`">{{ asset.index_name }}</code>
 				</div>
 				<div v-else-if="key === 'index_id'" class="flex flex-col gap-1">
 					<code class="leading-none">{{ asset.index_id }}</code>
 					<EntityDetailsButton
 						size="tiny"
+						:order="isOnWazuhIndexer ? ['view', 'open'] : ['view']"
 						:route="routeAlertsSiemAlert(asset.index_name, asset.index_id)"
 						@view="openAlertDetails()"
 					/>
@@ -71,12 +77,14 @@
 							<template #value>
 								<div v-if="key === '_index'">
 									<code
+										v-if="isOnWazuhIndexer"
 										class="text-primary cursor-pointer"
 										@click.stop="routeIndex(alertDetailsInfo._index).navigate()"
 									>
 										{{ alertDetailsInfo._index }}
 										<Icon :name="LinkIcon" :size="14" class="relative top-0.5" />
 									</code>
+									<code v-else>{{ alertDetailsInfo._index }}</code>
 								</div>
 								<div v-else>
 									{{ value === "" ? "-" : (value ?? "-") }}
@@ -120,6 +128,9 @@ const message = useMessage()
 const loading = ref(false)
 const showAlertDetails = ref(false)
 const alertDetails = ref<AlertDetails | null>(null)
+// The Indices browser and SIEM Alerts page only ever query the Wazuh indexer connector, so
+// linking to them for an asset sourced from a different cluster would silently 404/empty.
+const isOnWazuhIndexer = computed(() => !asset.value.connector_name || asset.value.connector_name === "Wazuh-Indexer")
 const alertDetailsInfo = computed(() => _omit(alertDetails.value, ["_source"]))
 const alertDetailsSource = computed(() => {
 	if (!alertDetails.value?._source) return undefined
@@ -149,15 +160,15 @@ const alertDetailsSource = computed(() => {
 
 watch(showAlertDetails, val => {
 	if (val && !alertDetails.value) {
-		getAlertDetails(asset.value.index_id, asset.value.index_name)
+		getAlertDetails(asset.value.index_id, asset.value.index_name, asset.value.connector_name)
 	}
 })
 
-function getAlertDetails(indexId: string, indexName: string) {
+function getAlertDetails(indexId: string, indexName: string, connectorName?: string) {
 	loading.value = true
 
 	Api.incidentManagement.alerts
-		.getAlertDetails(indexId, indexName)
+		.getAlertDetails(indexId, indexName, connectorName)
 		.then(res => {
 			if (res.data.success) {
 				alertDetails.value = res.data?.alert_details || null

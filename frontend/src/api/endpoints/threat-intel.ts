@@ -38,20 +38,42 @@ export default {
 			body
 		)
 	},
-	aiAlertAnalysis({ indexId, indexName, alertId }: { indexId: string; indexName: string; alertId: number }) {
+	aiAlertAnalysis({
+		indexId,
+		indexName,
+		alertId,
+		connectorName
+	}: {
+		indexId: string
+		indexName: string
+		alertId: number
+		connectorName?: string
+	}) {
 		return HttpClient.post<FlaskBaseResponse & AiAnalysisResponse>(`/threat_intel/ai/analyze-alert`, {
 			index_name: indexName,
 			index_id: indexId,
-			alert_id: alertId
+			alert_id: alertId,
+			connector_name: connectorName
 		})
 	},
-	aiWazuhExclusionRule({ indexId, indexName, alertId }: { indexId: string; indexName: string; alertId: number }) {
+	aiWazuhExclusionRule({
+		indexId,
+		indexName,
+		alertId,
+		connectorName
+	}: {
+		indexId: string
+		indexName: string
+		alertId: number
+		connectorName?: string
+	}) {
 		return HttpClient.post<FlaskBaseResponse & AiWazuhExclusionRuleResponse>(
 			`/threat_intel/ai/wazuh-exclusion-rule`,
 			{
 				index_name: indexName,
 				index_id: indexId,
-				alert_id: alertId
+				alert_id: alertId,
+				connector_name: connectorName
 			}
 		)
 	},
@@ -59,12 +81,14 @@ export default {
 		indexId,
 		indexName,
 		agentId,
-		alertId
+		alertId,
+		connectorName
 	}: {
 		indexId: string
 		indexName: string
 		agentId: string
 		alertId: number
+		connectorName?: string
 	}) {
 		return HttpClient.post<FlaskBaseResponse & AiVelociraptorArtifactRecommendationResponse>(
 			`/threat_intel/ai/velociraptor-artifact-recommendation`,
@@ -72,7 +96,8 @@ export default {
 				index_name: indexName,
 				index_id: indexId,
 				agent_id: agentId,
-				alert_id: alertId
+				alert_id: alertId,
+				connector_name: connectorName
 			}
 		)
 	},

@@ -161,18 +161,20 @@ export default {
 			signal
 		})
 	},
-	getAlertDetails(indexId: string, indexName: string) {
+	getAlertDetails(indexId: string, indexName: string, connectorName?: string) {
 		return HttpClient.post<FlaskBaseResponse & { alert_details: AlertDetails }>(`/incidents/alerts/alert/details`, {
 			index_id: indexId,
-			index_name: indexName
+			index_name: indexName,
+			connector_name: connectorName
 		})
 	},
-	getAlertTimeline(indexId: string, indexName: string) {
+	getAlertTimeline(indexId: string, indexName: string, connectorName?: string) {
 		return HttpClient.post<FlaskBaseResponse & { alert_timeline: AlertTimeline[] }>(
 			`/incidents/alerts/alert/timeline`,
 			{
 				index_id: indexId,
-				index_name: indexName
+				index_name: indexName,
+				connector_name: connectorName
 			}
 		)
 	},

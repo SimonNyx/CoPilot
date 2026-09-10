@@ -1299,7 +1299,9 @@ async def create_asset(asset: AssetCreate, db: AsyncSession) -> Asset:
     if not alert_context:
         raise HTTPException(status_code=404, detail="Alert context not found")
 
-    db_asset = Asset(**asset.model_dump())
+    asset_data = asset.model_dump()
+    asset_data["connector_name"] = asset.connector_name or "Wazuh-Indexer"
+    db_asset = Asset(**asset_data)
     db.add(db_asset)
     try:
         await db.commit()

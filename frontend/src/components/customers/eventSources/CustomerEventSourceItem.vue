@@ -37,6 +37,14 @@
 						<template #label>Time Field</template>
 						<template #value>{{ source.time_field }}</template>
 					</Badge>
+
+					<Badge type="splitted" color="primary">
+						<template #iconLeft>
+							<Icon :name="ClusterIcon" :size="13" />
+						</template>
+						<template #label>Cluster</template>
+						<template #value>{{ source.connector_name || "Wazuh-Indexer" }}</template>
+					</Badge>
 				</div>
 			</template>
 
@@ -84,6 +92,7 @@ const emit = defineEmits<{
 const TypeIcon = "carbon:category"
 const IndexIcon = "carbon:catalog"
 const TimeIcon = "carbon:time"
+const ClusterIcon = "carbon:data-base"
 const EditIcon = "carbon:edit"
 const DeleteIcon = "ph:trash"
 

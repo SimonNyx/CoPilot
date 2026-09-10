@@ -352,8 +352,16 @@ async def put_customer_notification_endpoint(
     response_model=AvailableSourcesResponse,
     dependencies=[Security(AuthHandler().require_any_scope("admin", "analyst"))],
 )
-async def get_available_source_values(index_name: str, session: AsyncSession = Depends(get_db)):
-    return AvailableSourcesResponse(source=await get_index_source(index_name), success=True, message="Source retrieved successfully")
+async def get_available_source_values(
+    index_name: str,
+    connector_name: str = "Wazuh-Indexer",
+    session: AsyncSession = Depends(get_db),
+):
+    return AvailableSourcesResponse(
+        source=await get_index_source(index_name, connector_name),
+        success=True,
+        message="Source retrieved successfully",
+    )
 
 
 @incidents_db_operations_router.get(
@@ -361,9 +369,13 @@ async def get_available_source_values(index_name: str, session: AsyncSession = D
     response_model=AvailableIndicesResponse,
     dependencies=[Security(AuthHandler().require_any_scope("admin", "analyst"))],
 )
-async def get_available_indices(source: str, session: AsyncSession = Depends(get_db)):
+async def get_available_indices(
+    source: str,
+    connector_name: str = "Wazuh-Indexer",
+    session: AsyncSession = Depends(get_db),
+):
     return AvailableIndicesResponse(
-        indices=await get_available_indices_via_source(source),
+        indices=await get_available_indices_via_source(source, connector_name),
         success=True,
         message="Indices retrieved successfully",
     )
@@ -439,8 +451,12 @@ async def delete_configured_source(source: str, session: AsyncSession = Depends(
     response_model=MappingsResponse,
     dependencies=[Security(AuthHandler().require_any_scope("admin", "analyst"))],
 )
-async def get_wazuh_fields_and_assets(index_name: str, session: AsyncSession = Depends(get_db)):
-    index_mapping = await get_index_mappings_key_names(index_name)
+async def get_wazuh_fields_and_assets(
+    index_name: str,
+    connector_name: str = "Wazuh-Indexer",
+    session: AsyncSession = Depends(get_db),
+):
+    index_mapping = await get_index_mappings_key_names(index_name, connector_name)
     return MappingsResponse(available_mappings=index_mapping, success=True, message="Field names and asset names retrieved successfully")
 
 
@@ -2982,6 +2998,7 @@ async def create_case_notification_endpoint(
                 alert_id=alert.id,
                 index_name=alert.assets[0].index_name if alert.assets else None,
                 index_id=alert.assets[0].index_id if alert.assets else None,
+                connector_name=alert.assets[0].connector_name if alert.assets else None,
                 # Default rule level + normalized severity (issue #980).
                 rule_level=rule_level,
                 severity=severity_from_rule_level(rule_level),

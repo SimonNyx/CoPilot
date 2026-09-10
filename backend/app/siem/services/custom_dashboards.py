@@ -335,6 +335,7 @@ async def preview_custom_dashboard(
         time_field=event_source.time_field,
         timerange=request.timerange,
         base_query=request.default_query,
+        connector_name=event_source.connector_name,
     )
 
     return {

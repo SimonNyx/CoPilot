@@ -182,7 +182,7 @@ async def _fetch_raw_event_for_alert(
             create_wazuh_indexer_client_async,
         )
 
-        es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+        es_client = await create_wazuh_indexer_client_async(asset.connector_name or "Wazuh-Indexer")
         doc = await es_client.get(index=asset.index_name, id=asset.index_id)
         return doc.get("_source") or {}
     except Exception as e:

@@ -195,7 +195,7 @@ async def get_single_alert_details(
     logger.info(
         f"Fetching alert details for alert {alert_details.alert_id} in index {alert_details.index_name}",
     )
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(alert_details.connector_name or "Wazuh-Indexer")
     try:
         alert = await es_client.get(index=alert_details.index_name, id=alert_details.alert_id)
         source_model = GenericSourceModel(**alert["_source"])
@@ -366,7 +366,7 @@ async def add_alert_to_document(
         logger.info("Skipping document write-back for 'not_applicable' sentinel index/id")
         return None
 
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(alert.connector_name or "Wazuh-Indexer")
     try:
         await es_client.update(
             index=alert.index_name,
@@ -588,6 +588,7 @@ async def build_alert_payload(
     index_id: str,
     alert_payload: dict,
     session: AsyncSession,
+    connector_name: Optional[str] = None,
 ) -> CreatedAlertPayload:
     """
     Build the alert payload based on the syslog type and the alert payload.
@@ -646,6 +647,7 @@ async def build_alert_payload(
         source=syslog_type,
         index_name=index_name,
         index_id=index_id,
+        connector_name=connector_name,
         rule_level=rule_level,
         severity=severity_from_rule_level(rule_level),
     )
@@ -912,7 +914,11 @@ async def create_alert_full(
                 and alert_payload.index_id != "not_applicable"
             ):
                 await add_alert_to_document(
-                    CreateAlertRequest(index_name=alert_payload.index_name, alert_id=alert_payload.index_id),
+                    CreateAlertRequest(
+                        index_name=alert_payload.index_name,
+                        alert_id=alert_payload.index_id,
+                        connector_name=alert_payload.connector_name,
+                    ),
                     existing_alert_id,
                 )
 
@@ -1019,7 +1025,14 @@ async def create_alert_full(
         )
         return alert_id
 
-    await add_alert_to_document(CreateAlertRequest(index_name=alert_payload.index_name, alert_id=alert_payload.index_id), alert_id)
+    await add_alert_to_document(
+        CreateAlertRequest(
+            index_name=alert_payload.index_name,
+            alert_id=alert_payload.index_id,
+            connector_name=alert_payload.connector_name,
+        ),
+        alert_id,
+    )
 
     return alert_id
 
@@ -1102,6 +1115,7 @@ async def add_asset_to_copilot_alert(alert_payload: CreatedAlertPayload, alert_i
         customer_code=customer_code,
         index_name=alert_payload.index_name,
         index_id=alert_payload.index_id,
+        connector_name=alert_payload.connector_name or "Wazuh-Indexer",
     )
     # Commit it to the database
     session.add(asset_context)
@@ -1251,6 +1265,7 @@ async def create_asset_context_payload(
         customer_code=customer_code,
         index_name=asset_payload.index_name,
         index_id=asset_payload.index_id,
+        connector_name=asset_payload.connector_name or "Wazuh-Indexer",
     )
     # Commit it to the database
     session.add(asset_context)
@@ -1348,6 +1363,7 @@ async def create_alert(
         alert_details.id,
         alert_details.source.to_dict(),
         session,
+        connector_name=alert.connector_name,
     )
     if simga_alert is not None:
         return await create_alert_full(alert_payload, customer_code, session)
@@ -1360,7 +1376,11 @@ async def create_alert(
         # Update the alert_creation_time to the latest trigger time
         await update_alert_creation_time(existing_alert, alert_payload.timefield_payload, session)
         await add_alert_to_document(
-            CreateAlertRequest(index_name=alert_payload.index_name, alert_id=alert_payload.index_id),
+            CreateAlertRequest(
+                index_name=alert_payload.index_name,
+                alert_id=alert_payload.index_id,
+                connector_name=alert_payload.connector_name,
+            ),
             existing_alert,
         )
         await add_asset_to_copilot_alert(alert_payload, existing_alert, customer_code, session)
@@ -1410,6 +1430,7 @@ async def retrieve_alert_timeline(alert: CreateAlertRequestRoute, session: Async
             alert_details.source.agent_name,
             start_of_day,
             end_of_day,
+            connector_name=alert.connector_name,
         )
     return []
 
@@ -1424,7 +1445,9 @@ async def get_alert_details(alert: CreateAlertRequestRoute) -> Any:
     Returns:
         Any: The alert details.
     """
-    return await get_single_alert_details(CreateAlertRequest(index_name=alert.index_name, alert_id=alert.index_id))
+    return await get_single_alert_details(
+        CreateAlertRequest(index_name=alert.index_name, alert_id=alert.index_id, connector_name=alert.connector_name),
+    )
 
 
 def calculate_day_range(timestamp: str) -> (str, str):
@@ -1449,6 +1472,7 @@ async def fetch_alert_timeline(
     agent_name: str,
     start_of_day: str,
     end_of_day: str,
+    connector_name: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Fetch the alert timeline from the indexer.
@@ -1463,7 +1487,7 @@ async def fetch_alert_timeline(
     Returns:
         List[Dict[str, Any]]: The alert timeline.
     """
-    es_client = await create_wazuh_indexer_client("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client(connector_name or "Wazuh-Indexer")
     alert_timeline = await run_blocking(
         es_client.search,
         index=index_name,

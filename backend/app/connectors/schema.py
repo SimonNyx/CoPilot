@@ -40,6 +40,19 @@ class ConnectorResponse(BaseModel):
 
 class ConnectorsListResponse(BaseModel):
     connectors: List[ConnectorResponse]
+
+
+class ConnectorName(BaseModel):
+    """Deliberately minimal projection of a connector -- no URL, credentials, or API
+    key -- so it can be exposed to the analyst role for cluster-picker UIs without
+    widening the admin-only full-connector-list endpoint (GHSA-c5pw-2h98-r798)."""
+
+    connector_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConnectorNamesListResponse(BaseModel):
+    connectors: List[ConnectorName]
     success: bool
     message: str
 

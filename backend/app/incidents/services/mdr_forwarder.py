@@ -8,15 +8,22 @@ pointers + CoPilot alert ID to the MDR server:
     POST {MDR_SERVER_URL}/api/v1/alerts/copilot
     {
         "collector_uuid":   <MDR_COLLECTOR_UUID>,
-        "index_name":       <Wazuh Indexer index name>,
-        "index_id":         <Wazuh Indexer document id>,
-        "copilot_alert_id": <CoPilot alert id>
+        "index_name":       <indexer index name>,
+        "index_id":         <indexer document id>,
+        "copilot_alert_id": <CoPilot alert id>,
+        "connector_name":   <name of the connector whose cluster hosts index_name>
     }
 
 The MDR server authenticates the request by the collector UUID (no bearer
 token) and then tasks the customer's collector to fetch the authoritative
-document from the Wazuh Indexer. Forwarding is best-effort: failures are logged
+document from the indexer. Forwarding is best-effort: failures are logged
 and never propagate to alert creation.
+
+NOTE: connector_name is additive and, as of this writing, not yet consumed by the
+SOCFortress MDR server -- its collector still always assumes the Wazuh Indexer. An
+alert sourced from a different connector (e.g. Graylog-OpenSearch) will forward
+successfully but the MDR-side document fetch will fail until the collector is
+updated to honor this field.
 """
 
 import os
@@ -143,6 +150,12 @@ async def forward_alert_to_mdr(
             "index_name": alert_payload.index_name,
             "index_id": alert_payload.index_id,
             "copilot_alert_id": alert_payload.alert_id,
+            # Additive: the SOCFortress MDR collector today always assumes "the Wazuh
+            # Indexer" (see module docstring) and does not yet read this field. Sent so
+            # the collector can start honoring it once updated, without a CoPilot-side
+            # change -- until then, MDR forwarding for an alert sourced from a connector
+            # other than Wazuh-Indexer will fail to fetch the document on the MDR side.
+            "connector_name": alert_payload.connector_name or "Wazuh-Indexer",
         }
 
         logger.info(
