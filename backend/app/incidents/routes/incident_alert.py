@@ -123,7 +123,11 @@ async def get_single_alert_details_route(
         success=True,
         message="Alert details retrieved",
         alert_details=await get_single_alert_details(
-            CreateAlertRequest(index_name=create_alert_request.index_name, alert_id=create_alert_request.index_id),
+            CreateAlertRequest(
+                index_name=create_alert_request.index_name,
+                alert_id=create_alert_request.index_id,
+                connector_name=create_alert_request.connector_name,
+            ),
         ),
     )
 
@@ -282,12 +286,17 @@ async def create_alert_auto_route(
                 create_alert_request = CreateAlertRequest(
                     index_name=await get_original_alert_index_name(origin_context=alert.source.origin_context),
                     alert_id=await get_original_alert_id(alert.source.origin_context),
+                    connector_name=alert.connector_name,
                 )
 
                 alert_id = await create_alert(create_alert_request, session)
 
-                # Add the CoPilot alert ID to Graylog event index
-                await add_copilot_alert_id(index_data=CreateAlertRequest(index_name=alert.index, alert_id=alert.id), alert_id=alert_id)
+                # Add the CoPilot alert ID to Graylog event index, on the same cluster the
+                # gl-events document was discovered on.
+                await add_copilot_alert_id(
+                    index_data=CreateAlertRequest(index_name=alert.index, alert_id=alert.id, connector_name=alert.connector_name),
+                    alert_id=alert_id,
+                )
 
                 batch_created += 1
                 total_created += 1
@@ -378,14 +387,14 @@ async def invoke_alert_threshold_graylog_route(
     logger.info(f"Timestamp: {request.event.timestamp}")
 
     # Resolve the underlying event from OpenSearch using the replay_info and group_by_fields
-    resolved_index_name, resolved_index_id = await resolve_threshold_event(
+    resolved_index_name, resolved_index_id, resolved_connector_name = await resolve_threshold_event(
         replay_query=request.event.replay_info.query,
         timerange_start=request.event.replay_info.timerange_start,
         timerange_end=request.event.replay_info.timerange_end,
         group_by_fields=request.event.group_by_fields,
         source=request.event.fields.SOURCE,
     )
-    logger.info(f"Resolved threshold event: index={resolved_index_name}, id={resolved_index_id}")
+    logger.info(f"Resolved threshold event: index={resolved_index_name}, id={resolved_index_id}, connector={resolved_connector_name}")
 
     # Resolve asset name from the actual event document in OpenSearch
     asset_name = await resolve_threshold_asset(
@@ -393,6 +402,7 @@ async def invoke_alert_threshold_graylog_route(
         index_id=resolved_index_id,
         source=request.event.fields.SOURCE,
         session=session,
+        connector_name=resolved_connector_name,
     )
     logger.info(f"Resolved threshold asset: {asset_name}")
 
@@ -405,6 +415,7 @@ async def invoke_alert_threshold_graylog_route(
             source=request.event.fields.SOURCE,
             index_name=resolved_index_name,
             index_id=resolved_index_id,
+            connector_name=resolved_connector_name,
         ),
         customer_code=request.event.fields.CUSTOMER_CODE,
         session=session,
@@ -414,7 +425,7 @@ async def invoke_alert_threshold_graylog_route(
     # Add the CoPilot alert_id to the resolved OpenSearch document
     if resolved_index_name != "not_applicable" and resolved_index_id != "not_applicable":
         await add_alert_to_document(
-            CreateAlertRequest(index_name=resolved_index_name, alert_id=resolved_index_id),
+            CreateAlertRequest(index_name=resolved_index_name, alert_id=resolved_index_id, connector_name=resolved_connector_name),
             alert_id,
         )
 

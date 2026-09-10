@@ -6,6 +6,17 @@ export default {
 	getAll(signal?: AbortSignal) {
 		return HttpClient.get<FlaskBaseResponse & { connectors: Connector[] }>("/connectors", { signal })
 	},
+	/**
+	 * Names only, no credentials -- admin+analyst (unlike getAll(), which is admin-only
+	 * since it returns plaintext connector_password/connector_api_key). Use this for any
+	 * cluster/connector picker UI that must also work for the analyst role.
+	 */
+	getNames(signal?: AbortSignal) {
+		return HttpClient.get<FlaskBaseResponse & { connectors: { connector_name: string }[] }>(
+			"/connectors/names",
+			{ signal }
+		)
+	},
 	configure(connectorId: string | number, payload: ConnectorRequestPayload) {
 		return HttpClient.post<FlaskBaseResponse & { connectors: Connector[] }>(`/connectors/${connectorId}`, payload)
 	},

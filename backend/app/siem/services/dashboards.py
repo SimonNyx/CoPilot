@@ -268,6 +268,7 @@ async def execute_panels(
     time_field: str,
     timerange: str,
     base_query: str = "*",
+    connector_name: str = "Wazuh-Indexer",
 ) -> Dict[str, PanelResult]:
     """Run every panel query against the indexer and return chart-ready results.
 
@@ -286,7 +287,7 @@ async def execute_panels(
 
     base_query = (base_query or "*").strip() or "*"
 
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(connector_name)
     results: Dict[str, PanelResult] = {}
 
     try:
@@ -475,6 +476,7 @@ async def get_panel_data(
         time_field=event_source.time_field,
         timerange=timerange,
         base_query=base_query,
+        connector_name=event_source.connector_name,
     )
 
     return {

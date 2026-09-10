@@ -18,11 +18,19 @@
 							<template #value>
 								<div class="flex h-full items-center">
 									<code
+										v-if="isOnWazuhIndexer"
 										class="text-primary cursor-pointer leading-none"
 										@click.stop="routeIndex(asset.index_name).navigate()"
 									>
 										{{ asset.index_name }}
 										<Icon :name="LinkIcon" :size="14" class="relative top-0.5" />
+									</code>
+									<code
+										v-else
+										class="leading-none"
+										:title="`Lives on connector '${asset.connector_name}' -- the Indices browser only covers the Wazuh indexer`"
+									>
+										{{ asset.index_name }}
 									</code>
 								</div>
 							</template>
@@ -85,6 +93,9 @@ const LinkIcon = "carbon:launch"
 const { routeAgent, routeIndex, routeIncidentManagementAlertAsset } = useNavigation()
 const showDetails = ref(false)
 const assetNameTruncated = computed(() => _truncate(asset.asset_name, { length: 50 }))
+// The Indices browser (SIEM > Indices) only ever queries the Wazuh indexer connector, so
+// linking to it for an asset sourced from a different cluster would silently 404/empty.
+const isOnWazuhIndexer = computed(() => !asset.connector_name || asset.connector_name === "Wazuh-Indexer")
 
 function openDetails() {
 	showDetails.value = true

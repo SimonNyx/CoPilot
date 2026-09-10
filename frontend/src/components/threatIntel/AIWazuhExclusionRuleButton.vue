@@ -73,12 +73,14 @@ const {
 	indexName,
 	indexId,
 	alertId,
+	connectorName,
 	forceLicenseResponse = undefined,
 	size
 } = defineProps<{
 	indexName: string
 	indexId: string
 	alertId: number
+	connectorName?: string
 	forceLicenseResponse?: boolean
 	size?: ButtonSize
 }>()
@@ -105,7 +107,7 @@ function analysis() {
 	loading.value = true
 
 	Api.threatIntel
-		.aiWazuhExclusionRule({ indexName, indexId, alertId })
+		.aiWazuhExclusionRule({ indexName, indexId, alertId, connectorName })
 		.then(res => {
 			if (res.data.success) {
 				analysisResponse.value = res.data

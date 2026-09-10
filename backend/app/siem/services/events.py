@@ -60,16 +60,18 @@ async def query_events(
 ) -> EventsQueryResponse:
     logger.info(f"Querying events for customer {customer_code}, source {source_name}")
 
-    # If a scroll_id is provided, continue scrolling
-    if params.scroll_id:
-        return await _scroll_next_page(params.scroll_id)
-
-    # Look up event source to get index_pattern and time_field
+    # Look up event source to get index_pattern, time_field, and which cluster to query.
+    # Resolved even for scroll continuation -- an OpenSearch scroll_id is only valid against
+    # the cluster that created it, so the follow-up request must reuse the same connector.
     event_source = await get_event_source_by_customer_and_name(customer_code, source_name, db)
+
+    if params.scroll_id:
+        return await _scroll_next_page(params.scroll_id, connector_name=event_source.connector_name)
 
     return await _initial_search(
         index_pattern=event_source.index_pattern,
         time_field=event_source.time_field,
+        connector_name=event_source.connector_name,
         timerange=params.timerange,
         page_size=params.page_size,
         query=params.query,
@@ -83,11 +85,12 @@ async def _initial_search(
     time_field: str,
     timerange: str,
     page_size: int,
+    connector_name: str = "Wazuh-Indexer",
     query: str = None,
     time_from: str = None,
     time_to: str = None,
 ) -> EventsQueryResponse:
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(connector_name)
     try:
         query_builder = AlertsQueryBuilder()
         if time_from and time_to:
@@ -136,8 +139,8 @@ async def _initial_search(
         await es_client.close()
 
 
-async def _scroll_next_page(scroll_id: str) -> EventsQueryResponse:
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+async def _scroll_next_page(scroll_id: str, connector_name: str = "Wazuh-Indexer") -> EventsQueryResponse:
+    es_client = await create_wazuh_indexer_client_async(connector_name)
     try:
         response = await es_client.scroll(scroll_id=scroll_id, scroll="5m")
         hits = response["hits"]["hits"]
@@ -193,7 +196,7 @@ async def get_event_document(
             detail=f"Index '{index_name}' does not match event source pattern '{event_source.index_pattern}'",
         )
 
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(event_source.connector_name)
     try:
         doc = await es_client.get(index=index_name, id=event_id)
         return EventDocumentResponse(
@@ -231,7 +234,7 @@ async def get_field_mappings(
     path is re-derived here and already-configured columns keep resolving.
     """
     event_source = await get_event_source_by_customer_and_name(customer_code, source_name, db)
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(event_source.connector_name)
     try:
         response = await es_client.field_caps(
             index=event_source.index_pattern,

@@ -660,6 +660,10 @@ class EventSources(SQLModel, table=True):
     index_pattern: str = Field(max_length=1024, nullable=False)
     event_type: str = Field(max_length=50, nullable=False)  # EDR, EPP, Cloud Integration, Network Security
     time_field: str = Field(max_length=255, nullable=False, default="timestamp")
+    # Name of the row in `connectors` whose OpenSearch/Elasticsearch cluster hosts
+    # `index_pattern`. Defaults to the shared Wazuh indexer so every pre-existing event
+    # source keeps resolving to the same cluster it always has.
+    connector_name: str = Field(max_length=255, nullable=False, default="Wazuh-Indexer")
     enabled: bool = Field(default=True)
     # List of {key, label, width?} dicts. NULL/empty means "use the frontend's
     # hardcoded defaults" so behaviour for un-customised sources is unchanged.
@@ -684,7 +688,7 @@ class EventSources(SQLModel, table=True):
         DisplayColumn is not JSON serializable" on commit.
         """
         data = source_data.model_dump(exclude_unset=True) if hasattr(source_data, "model_dump") else {}
-        for field in ("name", "index_pattern", "event_type", "time_field", "enabled", "displayed_columns"):
+        for field in ("name", "index_pattern", "event_type", "time_field", "connector_name", "enabled", "displayed_columns"):
             if field in data:
                 setattr(self, field, data[field])
         self.updated_at = datetime.utcnow()

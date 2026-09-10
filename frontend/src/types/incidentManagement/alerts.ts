@@ -62,6 +62,8 @@ export interface AlertAsset {
 	customer_code: string
 	index_id: string
 	index_name: string
+	/** Name of the connector whose cluster hosts index_name/index_id. Defaults to "Wazuh-Indexer". */
+	connector_name: string
 	velociraptor_id: string
 }
 

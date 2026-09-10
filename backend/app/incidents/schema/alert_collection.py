@@ -59,6 +59,10 @@ class AlertPayloadItem(BaseModel):
     id: str = Field(..., alias="_id")
     score: Optional[float] = Field(None, alias="_score")
     source: Source = Field(..., alias="_source")
+    # Which connector's cluster this gl-events document was fetched from. Not part of the
+    # ES hit itself -- stamped by the caller so downstream ingest/write-back reuse the same
+    # cluster the event was discovered on instead of assuming the Wazuh indexer.
+    connector_name: str = "Wazuh-Indexer"
 
 
 class AlertsPayload(BaseModel):

@@ -23,6 +23,7 @@ export interface EventSourceCreatePayload {
 	index_pattern: string
 	event_type: string
 	time_field: string
+	connector_name?: string
 	enabled: boolean
 	displayed_columns?: DisplayColumn[] | null
 }
@@ -32,6 +33,7 @@ export interface EventSourceUpdatePayload {
 	index_pattern?: string
 	event_type?: string
 	time_field?: string
+	connector_name?: string
 	enabled?: boolean
 	displayed_columns?: DisplayColumn[] | null
 }

@@ -16,6 +16,7 @@ from app.audit.services.audit import record_audit_event
 from app.auth.models.users import User
 from app.auth.utils import AuthHandler
 from app.connectors.schema import ConnectorListResponse
+from app.connectors.schema import ConnectorNamesListResponse
 from app.connectors.schema import ConnectorResponse
 from app.connectors.schema import ConnectorsListResponse
 from app.connectors.schema import UpdateConnector
@@ -56,6 +57,25 @@ async def get_connectors(
         }
     else:
         raise HTTPException(status_code=404, detail="No connectors found")
+
+
+@connector_router.get(
+    "/names",
+    response_model=ConnectorNamesListResponse,
+    description="Fetch every connector's name only, for cluster/connector picker UIs",
+    # admin+analyst: unlike the full list above, this response is deliberately stripped
+    # of connector_url/username/password/api_key (see ConnectorName), so it's safe for
+    # the analyst role -- needed so cluster pickers (EventSource, Source Configuration)
+    # can list connectors like "Graylog-OpenSearch" without hitting the admin-only
+    # /connectors 403. Must stay above /{connector_id} -- a static path below a wildcard
+    # route gets swallowed by it (FastAPI route-ordering footgun, see CLAUDE.md).
+    dependencies=[Security(AuthHandler().require_any_scope("admin", "analyst"))],
+)
+async def get_connector_names(
+    session: AsyncSession = Depends(get_db),
+) -> ConnectorNamesListResponse:
+    connectors = await ConnectorServices.fetch_connector_names(session=session)
+    return ConnectorNamesListResponse(connectors=connectors)
 
 
 @connector_router.get(

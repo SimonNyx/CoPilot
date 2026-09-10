@@ -37,7 +37,7 @@ async def resolve_threshold_event(
     timerange_end: datetime,
     group_by_fields: Dict[str, str],
     source: str,
-) -> Tuple[str, str]:
+) -> Tuple[str, str, str]:
     """
     Query OpenSearch to find the first event matching a threshold alert's conditions.
 
@@ -52,15 +52,16 @@ async def resolve_threshold_event(
         source: The SOURCE field from the Graylog alert (e.g. "wazuh").
 
     Returns:
-        Tuple of (index_name, index_id) from the first matching hit,
-        or ("not_applicable", "not_applicable") if no event is found or source is unmapped.
+        Tuple of (index_name, index_id, connector_name) from the first matching hit,
+        or ("not_applicable", "not_applicable", "Wazuh-Indexer") if no event is found or
+        source is unmapped.
     """
     try:
-        index_pattern, time_field = get_index_config_for_source(source)
+        index_pattern, time_field, connector_name = get_index_config_for_source(source)
     except ValueError:
-        return ("not_applicable", "not_applicable")
+        return ("not_applicable", "not_applicable", "Wazuh-Indexer")
 
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(connector_name)
     try:
         must_clauses: List[Dict[str, Any]] = [
             {"query_string": {"query": replay_query, "default_operator": "AND"}},
@@ -97,18 +98,18 @@ async def resolve_threshold_event(
             hit = hits[0]
             resolved_index = hit["_index"]
             resolved_id = hit["_id"]
-            logger.info(f"Resolved threshold event: index={resolved_index}, id={resolved_id}")
-            return (resolved_index, resolved_id)
+            logger.info(f"Resolved threshold event: index={resolved_index}, id={resolved_id}, connector={connector_name}")
+            return (resolved_index, resolved_id, connector_name)
 
         logger.warning(
             f"No matching event found for threshold alert in '{index_pattern}' "
             f"with query '{replay_query}' and group_by {group_by_fields}",
         )
-        return ("not_applicable", "not_applicable")
+        return ("not_applicable", "not_applicable", connector_name)
 
     except Exception as e:
         logger.error(f"Error resolving threshold event: {e}")
-        return ("not_applicable", "not_applicable")
+        return ("not_applicable", "not_applicable", connector_name)
     finally:
         await es_client.close()
 
@@ -118,6 +119,7 @@ async def resolve_threshold_asset(
     index_id: str,
     source: str,
     session: AsyncSession,
+    connector_name: str = "Wazuh-Indexer",
 ) -> str:
     """
     Fetch the resolved event document from OpenSearch and resolve the asset name
@@ -128,6 +130,7 @@ async def resolve_threshold_asset(
         index_id: The OpenSearch document ID of the resolved event.
         source: The source type (e.g. "wazuh").
         session: Database session for looking up asset field names.
+        connector_name: Connector whose cluster hosts index_name (from resolve_threshold_event).
 
     Returns:
         The resolved asset name, or "No asset found" if resolution fails.
@@ -148,7 +151,7 @@ async def resolve_threshold_asset(
     logger.info(f"Asset field candidates for source '{source}': {possible_fields}")
 
     # Fetch the event document from OpenSearch
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(connector_name)
     try:
         doc = await es_client.get(index=index_name, id=index_id)
         event_source = doc.get("_source", {})
@@ -260,12 +263,12 @@ async def retrieve_threshold_alert_timeline(
         return None
 
     try:
-        index_pattern, time_field = get_index_config_for_source(metadata.source)
+        index_pattern, time_field, connector_name = get_index_config_for_source(metadata.source)
     except ValueError:
         logger.warning(f"Cannot retrieve threshold timeline: source '{metadata.source}' is not mapped")
         return []
 
-    es_client = await create_wazuh_indexer_client_async("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client_async(connector_name)
     try:
         must_clauses: List[Dict[str, Any]] = [
             {"query_string": {"query": metadata.replay_query, "default_operator": "AND"}},

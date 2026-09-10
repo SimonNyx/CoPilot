@@ -32,6 +32,12 @@ class EventSourceCreate(BaseModel):
     index_pattern: str = Field(..., max_length=1024)
     event_type: EventType
     time_field: str = Field("timestamp", max_length=255)
+    connector_name: str = Field(
+        "Wazuh-Indexer",
+        max_length=255,
+        description="Name of the connector row (in `connectors`) whose OpenSearch/Elasticsearch cluster "
+        "hosts `index_pattern`. Defaults to the shared Wazuh indexer.",
+    )
     enabled: bool = True
     displayed_columns: Optional[List[DisplayColumn]] = Field(
         None,
@@ -44,6 +50,7 @@ class EventSourceUpdate(BaseModel):
     index_pattern: Optional[str] = Field(None, max_length=1024)
     event_type: Optional[EventType] = None
     time_field: Optional[str] = Field(None, max_length=255)
+    connector_name: Optional[str] = Field(None, max_length=255)
     enabled: Optional[bool] = None
     displayed_columns: Optional[List[DisplayColumn]] = None
 
@@ -55,6 +62,7 @@ class EventSourceResponse(BaseModel):
     index_pattern: str
     event_type: str
     time_field: str
+    connector_name: str
     enabled: bool
     displayed_columns: Optional[List[DisplayColumn]] = None
     created_at: datetime

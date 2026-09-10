@@ -145,6 +145,11 @@ class Asset(SQLModel, table=True):
     customer_code: str = Field(max_length=50, nullable=False)
     index_name: str = Field(max_length=255, nullable=False)
     index_id: str = Field(max_length=255, nullable=False)
+    # Name of the row in `connectors` whose OpenSearch/Elasticsearch cluster hosts `index_name`.
+    # Stamped once at alert creation from CreateAlertRequest.connector_name (defaulted to the
+    # Wazuh indexer there), so every read of this alert's raw document resolves to the same
+    # cluster it was actually ingested from.
+    connector_name: str = Field(max_length=255, nullable=False, default="Wazuh-Indexer")
 
     alert: Alert = Relationship(back_populates="assets")
     alert_context: AlertContext = Relationship(back_populates="assets")

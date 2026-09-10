@@ -19,6 +19,7 @@
 				v-if="resolvedAsset"
 				:index-id="resolvedAsset.index_id"
 				:index-name="resolvedAsset.index_name"
+				:connector-name="resolvedAsset.connector_name"
 				:agent-id="resolvedAsset.agent_id"
 				:alert-id="resolvedAsset.alert_linked"
 				:force-license-response="licenseResponse"
@@ -27,6 +28,7 @@
 				v-if="resolvedAsset"
 				:index-id="resolvedAsset.index_id"
 				:index-name="resolvedAsset.index_name"
+				:connector-name="resolvedAsset.connector_name"
 				:alert-id="resolvedAsset.alert_linked"
 				:force-license-response="licenseResponse"
 			/>
@@ -34,6 +36,7 @@
 				v-if="resolvedAsset"
 				:index-id="resolvedAsset.index_id"
 				:index-name="resolvedAsset.index_name"
+				:connector-name="resolvedAsset.connector_name"
 				:alert-id="resolvedAsset.alert_linked"
 				:force-license-response="licenseResponse"
 			/>

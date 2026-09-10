@@ -41,7 +41,7 @@ function getAlertTimeline() {
 	loading.value = true
 
 	Api.incidentManagement.alerts
-		.getAlertTimeline(asset.index_id, asset.index_name)
+		.getAlertTimeline(asset.index_id, asset.index_name, asset.connector_name)
 		.then(res => {
 			if (res.data.success) {
 				timeline.value = res.data?.alert_timeline || []

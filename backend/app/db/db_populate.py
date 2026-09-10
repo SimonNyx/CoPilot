@@ -159,6 +159,16 @@ def get_connectors_list():
             "Connection to Graylog. If you only have one Graylog instance, set this to the same as Graylog.",
         ),
         (
+            "Graylog-OpenSearch",
+            "2.11",
+            "username_password",
+            (
+                "Connection to the OpenSearch/Elasticsearch cluster backing a Graylog instance. Used as an "
+                "independent alert/event data source so Talon and the Events tab are not dependent on a single "
+                "shared cluster with the Wazuh indexer."
+            ),
+        ),
+        (
             "Resend",
             "1",
             "api_key",

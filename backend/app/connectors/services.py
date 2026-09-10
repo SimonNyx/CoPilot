@@ -21,6 +21,7 @@ from app.connectors.influxdb.utils.universal import verify_influxdb_connection
 from app.connectors.models import Connectors
 from app.connectors.portainer.utils.universal import verify_portainer_connection
 from app.connectors.resend.utils.universal import verify_resend_connection
+from app.connectors.schema import ConnectorName
 from app.connectors.schema import ConnectorResponse
 from app.connectors.shuffle.utils.universal import verify_shuffle_connection
 from app.connectors.sublime.utils.universal import verify_sublime_connection
@@ -94,6 +95,15 @@ class GraylogNetworkService(ConnectorServiceInterface):
         connector: ConnectorResponse,
     ) -> Optional[ConnectorResponse]:
         return await verify_graylog_connection(connector.connector_name)
+
+
+# Graylog OpenSearch Service (independent OpenSearch/ES cluster backing a Graylog instance)
+class GraylogOpenSearchService(ConnectorServiceInterface):
+    async def verify_authentication(
+        self,
+        connector: ConnectorResponse,
+    ) -> Optional[ConnectorResponse]:
+        return await verify_wazuh_indexer_connection(connector.connector_name)
 
 
 # Cortex Service
@@ -235,6 +245,7 @@ def get_connector_service(connector_name: str) -> Type[ConnectorServiceInterface
         "Velociraptor": VelociraptorService,
         "Graylog": GraylogService,
         "Graylog-Network": GraylogNetworkService,
+        "Graylog-OpenSearch": GraylogOpenSearchService,
         "Cortex": CortexService,
         "Shuffle": ShuffleService,
         "Sublime": SublimeService,
@@ -278,6 +289,28 @@ class ConnectorServices:
             exit(0)
         connectors = result.scalars().all()
         return [ConnectorResponse.from_orm(connector) for connector in connectors]
+
+    @classmethod
+    async def fetch_connector_names(
+        cls,
+        session: AsyncSession,
+    ) -> List[ConnectorName]:
+        """
+        Fetches every connector's name only -- no URL, credentials, or API key.
+
+        Used to populate cluster/connector pickers for roles (analyst) that must not
+        see the admin-only full connector list (GHSA-c5pw-2h98-r798): a scoped column
+        select rather than reusing fetch_all_connectors, so credential columns never
+        even get pulled into memory here.
+
+        Args:
+            session (AsyncSession): The database session.
+
+        Returns:
+            List[ConnectorName]: Every connector's name.
+        """
+        result = await session.execute(select(Connectors.connector_name))
+        return [ConnectorName(connector_name=name) for name in result.scalars().all()]
 
     @classmethod
     async def fetch_connector_by_id(

@@ -49,6 +49,7 @@ class FakeEventSource:
     def __init__(self, index_pattern: str):
         self.index_pattern = index_pattern
         self.time_field = "timestamp"
+        self.connector_name = "Wazuh-Indexer"
 
 
 def _run_get_field_mappings(monkeypatch, response: dict, index_pattern: str = "office365-abc-*"):

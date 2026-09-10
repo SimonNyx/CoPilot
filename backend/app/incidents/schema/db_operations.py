@@ -448,6 +448,7 @@ class AssetCreate(BaseModel):
     customer_code: str
     index_name: str
     index_id: str
+    connector_name: Optional[str] = None
 
 
 class AlertTagBase(BaseModel):
@@ -510,6 +511,7 @@ class AssetBase(BaseModel):
     alert_context_id: int
     velociraptor_id: Optional[str] = None
     index_name: str
+    connector_name: str = "Wazuh-Indexer"
 
 
 class IoCBase(BaseModel):

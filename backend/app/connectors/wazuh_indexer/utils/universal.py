@@ -545,30 +545,31 @@ class LogsQueryBuilder:
         return self.query
 
 
-async def get_index_mappings_key_names(index_name: str):
+async def get_index_mappings_key_names(index_name: str, connector_name: str = "Wazuh-Indexer"):
     """
     Get the mappings of an index.
 
     Args:
         index_name (str): The Name of the index.
+        connector_name (str): Connector whose cluster hosts index_name.
 
     Returns:
         list: The field names of the index.
     """
-    es_client = await create_wazuh_indexer_client("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client(connector_name)
     mappings = await run_blocking(es_client.indices.get_mapping, index=index_name)
     # return only the field names
     return list(mappings[index_name]["mappings"]["properties"].keys())
 
 
-async def return_graylog_events_index_names():
+async def return_graylog_events_index_names(connector_name: str = "Wazuh-Indexer"):
     """
-    Return the index names of the Graylog events.
+    Return the index names of the Graylog events on the given connector's cluster.
 
     Returns:
         list: The index names of the Graylog events.
     """
-    es_client = await create_wazuh_indexer_client("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client(connector_name)
     indices = await run_blocking(es_client.indices.get_alias, "gl-events*")
     return list(indices.keys())
 
@@ -588,11 +589,11 @@ async def return_graylog_events_index_names():
 #     raise HTTPException(status_code=404, detail=f"Source not found in index {index_name}")
 
 
-async def get_index_source(index_name: str):
+async def get_index_source(index_name: str, connector_name: str = "Wazuh-Indexer"):
     """
     Get the 10 latest results from the index and search for where the source contains a field name of `syslog_type` or `integration`
     """
-    es_client = await create_wazuh_indexer_client("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client(connector_name)
 
     # First search for 'syslog_type'
     query_syslog_type = {"size": 10, "query": {"bool": {"must": [{"exists": {"field": "syslog_type"}}]}}}
@@ -613,17 +614,18 @@ async def get_index_source(index_name: str):
     raise HTTPException(status_code=404, detail=f"Source not found in index {index_name}")
 
 
-async def get_available_indices_via_source(source: str):
+async def get_available_indices_via_source(source: str, connector_name: str = "Wazuh-Indexer"):
     """
     Get the available indices based on the source using regex matching.
 
     Args:
         source (str): The regex pattern for the source of the index.
+        connector_name (str): Connector whose cluster to search for matching indices.
 
     Returns:
         list: The available indices based on the source regex match.
     """
-    es_client = await create_wazuh_indexer_client("Wazuh-Indexer")
+    es_client = await create_wazuh_indexer_client(connector_name)
     try:
         indices = await run_blocking(es_client.indices.get_alias, "*")
         logger.info(f"Indices: {indices.keys()}")

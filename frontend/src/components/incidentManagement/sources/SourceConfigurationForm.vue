@@ -3,6 +3,15 @@
 		<n-form ref="formRef" :model="form" :rules>
 			<div class="flex flex-col gap-8">
 				<div class="flex flex-col gap-2">
+					<n-form-item v-if="showIndexNameField" label="Cluster">
+						<n-select
+							v-model:value="connectorName"
+							:options="connectorOptions"
+							:loading="loadingConnectors"
+							placeholder="Wazuh-Indexer"
+						/>
+					</n-form-item>
+
 					<n-form-item v-if="showIndexNameField" label="Index name" path="index_name">
 						<n-select
 							v-model:value="form.index_name"
@@ -228,6 +237,7 @@ import {
 import { computed, h, nextTick, onBeforeMount, ref, toRefs, watch } from "vue"
 import Api from "@/api"
 import Icon from "@/components/common/Icon.vue"
+import { useIndexerConnectorOptions } from "@/composables/useIndexerConnectorOptions"
 import { getApiErrorMessage } from "@/utils"
 
 const props = defineProps<{
@@ -262,6 +272,13 @@ const submitting = ref(false)
 const loadingSource = ref(false)
 const loadingIndexNames = ref(false)
 const loadingAvailableMappings = ref(false)
+// Which OpenSearch/Elasticsearch cluster to query while introspecting a candidate index
+// (index list / field mappings / source detection). Local UI state only -- not part of the
+// persisted SourceConfiguration, since at ingest time the connector is supplied by the
+// caller (see CreateAlertRequest.connector_name), not looked up from this config.
+const connectorName = ref("Wazuh-Indexer")
+const { options: connectorOptions, loading: loadingConnectors, load: loadConnectorOptions } =
+	useIndexerConnectorOptions()
 const loadingSocfortressRecommendsWazuh = ref(false)
 const socfortressRecommendsWazuh = ref<SourceConfiguration | null>(null)
 const loading = computed(() => loadingAvailableMappings.value || loadingIndexNames.value || loadingSource.value)
@@ -615,7 +632,7 @@ function getAvailableMappings(indexName: string) {
 	loadingAvailableMappings.value = true
 
 	Api.incidentManagement.sources
-		.getAvailableMappings(indexName)
+		.getAvailableMappings(indexName, connectorName.value)
 		.then(res => {
 			if (res.data.success) {
 				availableMappingsOptions.value = (res.data?.available_mappings || []).map(o => ({
@@ -641,7 +658,7 @@ function getAvailableIndices(source: SourceName) {
 	loadingIndexNames.value = true
 
 	Api.incidentManagement.sources
-		.getAvailableIndices(source)
+		.getAvailableIndices(source, connectorName.value)
 		.then(res => {
 			if (res.data.success) {
 				indexNamesOptions.value = (res.data?.indices || []).map(o => ({
@@ -666,7 +683,7 @@ function getSourceByIndex(indexName: string) {
 	loadingSource.value = true
 
 	Api.incidentManagement.sources
-		.getSourceByIndex(indexName)
+		.getSourceByIndex(indexName, connectorName.value)
 		.then(res => {
 			if (res.data.success) {
 				form.value.source = res.data.source
@@ -697,7 +714,18 @@ function init() {
 	}
 }
 
+watch(connectorName, () => {
+	if (form.value.index_name) {
+		getAvailableMappings(form.value.index_name)
+		getSourceByIndex(form.value.index_name)
+	}
+	if (form.value.source) {
+		getAvailableIndices(form.value.source)
+	}
+})
+
 onBeforeMount(() => {
+	loadConnectorOptions()
 	init()
 })
 

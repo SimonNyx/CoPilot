@@ -448,7 +448,9 @@ async def ai_anaylze_alert_socfortress(
     session: AsyncSession = Depends(get_db),
 ):
     # Fetch alert details
-    alert_details = await get_single_alert_details(CreateAlertRequest(index_name=request.index_name, alert_id=request.index_id))
+    alert_details = await get_single_alert_details(
+        CreateAlertRequest(index_name=request.index_name, alert_id=request.index_id, connector_name=request.connector_name),
+    )
 
     assert isinstance(alert_details, GenericAlertModel)
 
@@ -486,7 +488,9 @@ async def ai_wazuh_exclusion_rule_socfortress(
     session: AsyncSession = Depends(get_db),
 ):
     # Fetch alert details
-    alert_details = await get_single_alert_details(CreateAlertRequest(index_name=request.index_name, alert_id=request.index_id))
+    alert_details = await get_single_alert_details(
+        CreateAlertRequest(index_name=request.index_name, alert_id=request.index_id, connector_name=request.connector_name),
+    )
 
     assert isinstance(alert_details, GenericAlertModel)
 
@@ -597,7 +601,9 @@ async def ai_velociraptor_artifact_recommendation_socfortress(
     session: AsyncSession = Depends(get_db),
 ):
     # Fetch alert details
-    alert_payload = await get_single_alert_details(CreateAlertRequest(index_name=request.index_name, alert_id=request.index_id))
+    alert_payload = await get_single_alert_details(
+        CreateAlertRequest(index_name=request.index_name, alert_id=request.index_id, connector_name=request.connector_name),
+    )
 
     assert isinstance(alert_payload, GenericAlertModel)
 
