@@ -40,6 +40,8 @@ class ConnectorResponse(BaseModel):
 
 class ConnectorsListResponse(BaseModel):
     connectors: List[ConnectorResponse]
+    success: bool
+    message: str
 
 
 class ConnectorName(BaseModel):
